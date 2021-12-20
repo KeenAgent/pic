@@ -33,3 +33,28 @@ spec:
   selector:
     app: picalc
   type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: picalc.keen.world
+  annotations:
+    nginx.ingress.kubernetes.io/app-root: $uri
+    nginx.org/proxy-connect-timeout: "30s"
+    nginx.org/proxy-read-timeout: "20s"
+    nginx.org/client-max-body-size: "4m"
+    namespace: tekton-pipelines
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: picalc.keen.world
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: picalc
+            port: 
+              number: 8080
