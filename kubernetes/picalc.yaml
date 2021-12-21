@@ -41,13 +41,13 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: echo.keen.world
+  name: picalc.keen.world
+  namespace: minnova-dev
   annotations:
     nginx.ingress.kubernetes.io/app-root: $uri
     nginx.org/proxy-connect-timeout: "30s"
     nginx.org/proxy-read-timeout: "20s"
     nginx.org/client-max-body-size: "4m"
-    namespace: minnova-dev
 spec:
   ingressClassName: nginx
   rules:
