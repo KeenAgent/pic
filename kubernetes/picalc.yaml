@@ -1,63 +1,197 @@
+apiVersion: v1
+data:
+  APP_DEBUG: "true"
+  APP_ENV: local
+  APP_KEY: ""
+  APP_NAME: Lumen
+  APP_TIMEZONE: UTC
+  APP_URL: http://localhost
+  CACHE_DRIVER: file
+  DB_CONNECTION: mysql
+  DB_DATABASE: homestead
+  DB_HOST: 127.0.0.1
+  DB_PASSWORD: secret
+  DB_PORT: "3306"
+  DB_USERNAME: homestead
+  LOG_CHANNEL: stack
+  LOG_SLACK_WEBHOOK_URL: ""
+  QUEUE_CONNECTION: sync
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: config-api-core-env
+  name: env
+  namespace: minnova-dev
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: config-api-core-claim0
+  name: config-api-core-claim0
+  namespace: minnova-dev
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: config-api-core-claim1
+  name: config-api-core-claim1
+  namespace: minnova-dev
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: picalc
+  name: configuration-svc
   namespace: minnova-dev
   labels:
-    app: picalc
+    app: configuration-svc
 spec:
   selector:
     matchLabels:
-      app: picalc
+      app: configuration-svc
   revisionHistoryLimit: 0 
   template:
     metadata:
       labels:
-        app: picalc
+        app: configuration-svc
+        io.kompose.service: config-api-core
     spec:
       containers:
-      - name: picalc
-        image: __IMAGE__@__DIGEST__
-        ports:
-        - name: http-server
-          containerPort: 80
+        - env:
+            - name: APP_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  key: APP_DEBUG
+                  name: env
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  key: APP_ENV
+                  name: env
+            - name: APP_KEY
+              valueFrom:
+                configMapKeyRef:
+                  key: APP_KEY
+                  name: env
+            - name: APP_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: APP_NAME
+                  name: env
+            - name: APP_TIMEZONE
+              valueFrom:
+                configMapKeyRef:
+                  key: APP_TIMEZONE
+                  name: env
+            - name: APP_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: APP_URL
+                  name: env
+            - name: CACHE_DRIVER
+              valueFrom:
+                configMapKeyRef:
+                  key: CACHE_DRIVER
+                  name: env
+            - name: DB_CONNECTION
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_CONNECTION
+                  name: env
+            - name: DB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_DATABASE
+                  name: env
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_HOST
+                  name: env
+            - name: DB_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_PASSWORD
+                  name: env
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_PORT
+                  name: env
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_USERNAME
+                  name: env
+            - name: LOG_CHANNEL
+              valueFrom:
+                configMapKeyRef:
+                  key: LOG_CHANNEL
+                  name: env
+            - name: LOG_SLACK_WEBHOOK_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: LOG_SLACK_WEBHOOK_URL
+                  name: env
+            - name: QUEUE_CONNECTION
+              valueFrom:
+                configMapKeyRef:
+                  key: QUEUE_CONNECTION
+                  name: env
+          name: config-api-core
+          image: __IMAGE__@__DIGEST__
+          ports:
+            - name: configuration-svc-http
+              containerPort: 80
+          resources: {}
+          volumeMounts:
+            - mountPath: /var/www
+              name: config-api-core-claim0
+            - mountPath: /usr/local/etc/php/conf.d/local.ini
+              name: config-api-core-claim1
+      restartPolicy: Always
+      volumes:
+        - name: config-api-core-claim0
+          persistentVolumeClaim:
+            claimName: config-api-core-claim0
+        - name: config-api-core-claim1
+          persistentVolumeClaim:
+            claimName: config-api-core-claim1
+status: {}
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
-  name: picalc
+  name: configuration-svc
   namespace: minnova-dev
   labels:
-    app: picalc
+    app: configuration-svc
 spec:
   ports:
   - port: 80
-    targetPort: http-server
+    targetPort: configuration-svc-http
   selector:
-    app: picalc
+    app: configuration-svc
   type: ClusterIP
-
----           
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: picalc.keen.world
-  namespace: minnova-dev
-  annotations:
-    nginx.ingress.kubernetes.io/app-root: $uri
-    nginx.org/proxy-connect-timeout: "30s"
-    nginx.org/proxy-read-timeout: "20s"
-    nginx.org/client-max-body-size: "4m"
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: picalc.keen.world
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: picalc
-            port: 
-              number: 80
